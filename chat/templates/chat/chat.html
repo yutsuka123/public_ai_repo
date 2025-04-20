@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIチャット</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        #chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+        
+        #messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+        
+        .ai-message {
+            background-color: #e9ecef;
+            color: black;
+            margin-right: auto;
+        }
+        
+        #input-container {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        #error-container {
+            color: red;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #c62828;
+        }
+        
+        .selected-model-info {
+            background-color: #e3f2fd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .selected-model-info p {
+            margin: 0;
+            color: #1976d2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="model-selection">
+        <h3>利用可能なモデル一覧</h3>
+        <table>
+            <tr>
+                <th>番号</th>
+                <th>モデル名</th>
+                <th>説明</th>
+                <th>状態</th>
+            </tr>
+            {% for model, info in models.items %}
+            <tr>
+                <td>{{ info.number }}</td>
+                <td>{{ model }}</td>
+                <td>{{ info.description }}</td>
+                <td>{{ info.status }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+        
+        <div class="model-select">
+            <label for="model-number">使用するモデルを選択（番号を入力）:</label>
+            <input type="number" id="model-number" min="1" max="{{ models|length }}">
+            <button onclick="selectModel()">決定</button>
+        </div>
+    </div>
+
+    <div id="chat-container" style="display: none;">
+        <div id="messages"></div>
+        <div id="error-container"></div>
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="メッセージを入力...">
+            <button id="send-button">送信</button>
+        </div>
+    </div>
+
+    <script>
+        // CSRFトークン取得関数の追加
+        function getCsrfToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const errorContainer = document.getElementById('error-container');
+
+        function displayMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender === 'あなた' ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = `${sender}: ${text}`;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function displayError(error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<strong>エラー:</strong><br>${error}`;
+            messagesContainer.appendChild(errorDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // ユーザーメッセージを表示
+            displayMessage('あなた', message);
+            
+            // 送信中の表示
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai-message';
+            loadingDiv.textContent = 'AI: 応答を生成中...';
+            messagesContainer.appendChild(loadingDiv);
+
+            fetch('/chat/api/', {  // URLを/chat/api/に変更
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'エラーが発生しました');
+                }
+                return data;
+            })
+            .then(data => {
+                // ローディング表示を削除
+                messagesContainer.removeChild(loadingDiv);
+                // AI応答を表示
+                displayMessage('AI', data.response);
+            })
+            .catch(error => {
+                // ローディング表示を削除
+                if (loadingDiv.parentNode) {
+                    messagesContainer.removeChild(loadingDiv);
+                }
+                // エラーメッセージを表示
+                displayError(error.message);
+                console.error('Error:', error);
+            });
+
+            messageInput.value = '';
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 初期フォーカス
+        messageInput.focus();
+
+        function selectModel() {
+            const number = document.getElementById('model-number').value;
+            const models = {{ models|safe }};
+            
+            // デバッグ情報の出力
+            console.log('選択された番号:', number);
+            console.log('利用可能なモデル:', models);
+            
+            // 選択されたモデルを保存
+            const selectedModel = Object.entries(models).find(([_, info]) => info.number === parseInt(number));
+            if (selectedModel) {
+                const modelName = selectedModel[0];
+                const modelInfo = selectedModel[1];
+                
+                // モデルが利用可能かチェック（文字列として比較）
+                if (modelInfo.available === 'false') {
+                    alert('選択したモデルは現在利用できません');
+                    return;
+                }
+
+                // モデル情報を保存
+                localStorage.setItem('selectedModel', modelName);
+                
+                // モデル選択UIを非表示
+                document.querySelector('.model-selection').style.display = 'none';
+                
+                // チャットUIを表示
+                const chatContainer = document.getElementById('chat-container');
+                chatContainer.style.display = 'block';
+                
+                // 選択したモデル名を表示
+                const modelInfoDiv = document.createElement('div');
+                modelInfoDiv.className = 'selected-model-info';
+                modelInfoDiv.innerHTML = `<p>選択中のモデル: ${modelName}</p>`;
+                chatContainer.insertBefore(modelInfoDiv, chatContainer.firstChild);
+                
+                // メッセージ入力欄にフォーカス
+                document.getElementById('message-input').focus();
+                
+                // サーバーにモデル選択を通知
+                fetch('/chat/api/select_model/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({ model_name: modelName })
+                })
+                .catch(error => {
+                    console.error('モデル選択エラー:', error);
+                    displayError('モデル選択に失敗しました');
+                });
+            } else {
+                alert('無効な番号です');
+            }
+        }
+    </script>
+</body>
+</html>

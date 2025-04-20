@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>チャットアプリケーション</title>
+    <style>
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+        .ai-message {
+            background-color: #e9ecef;
+            margin-right: auto;
+        }
+        .input-form {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            display: none;  /* 送信ボタンを非表示に */
+        }
+        .tag-selectors {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .privacy-selector, .category-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        select[multiple] {
+            height: 200px;
+        }
+        label {
+            font-weight: bold;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chat-messages">
+            {% for message in conversation %}
+                <div class="message {% if message.role == 'user' %}user-message{% else %}ai-message{% endif %}">
+                    {{ message.text }}
+                </div>
+            {% endfor %}
+        </div>
+        <form method="POST" class="input-form" id="chat-form">
+            {% csrf_token %}
+            <input type="text" name="message" id="message-input" 
+                   placeholder="メッセージを入力... (Enterで送信)" autocomplete="off">
+            <button type="submit">送信</button>
+        </form>
+        <div class="tag-selectors">
+            <!-- プライバシーレベル選択 -->
+            <div class="privacy-selector">
+                <label>プライバシーレベル（必須）:</label>
+                <select id="privacy-level" required>
+                    <option value="一般">一般 - 誰でも参照可能</option>
+                    <option value="仕事">仕事 - 業務関連</option>
+                    <option value="プライベート">プライベート - 個人的な内容</option>
+                    <option value="極秘">極秘 - センシティブな内容（性・離婚関連等）</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+
+            <!-- カテゴリタグ選択（既存のタグセレクター） -->
+            <div class="category-selector">
+                <label>カテゴリタグ（複数選択可）:</label>
+                <select multiple id="category-tags">
+                    <!-- 一般会話カテゴリ -->
+                    <option value="雑談">雑談</option>
+                    <option value="相談">相談</option>
+                    <option value="質問">質問</option>
+                    
+                    <!-- 学術・教育 -->
+                    <option value="哲学">哲学・思想</option>
+                    <option value="歴史">歴史</option>
+                    <option value="社会科学">社会科学</option>
+                    <option value="自然科学">自然科学</option>
+                    <option value="技術工学">技術・工学</option>
+                    <option value="医学健康">医学・健康</option>
+                    <option value="教育">教育</option>
+                    
+                    <!-- 文化・芸術 -->
+                    <option value="芸術">芸術</option>
+                    <option value="音楽">音楽</option>
+                    <option value="文学">文学</option>
+                    <option value="言語">言語</option>
+                    
+                    <!-- 実用 -->
+                    <option value="ビジネス">ビジネス</option>
+                    <option value="プログラミング">プログラミング</option>
+                    <option value="生活">生活・暮らし</option>
+                    <option value="趣味">趣味・娯楽</option>
+                    
+                    <!-- 個人的 -->
+                    <option value="悩み">悩み相談</option>
+                    <option value="キャリア">キャリア</option>
+                    <option value="人間関係">人間関係</option>
+                    <option value="メンタルヘルス">メンタルヘルス</option>
+                    
+                    <!-- その他 -->
+                    <option value="ニュース">ニュース・時事</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('chat-form');
+            const input = document.getElementById('message-input');
+            const messages = document.getElementById('chat-messages');
+
+            // エンターキーでフォーム送信
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const message = input.value.trim();
+                if (!message) return;
+
+                // exitコマンドの処理
+                if (message.toLowerCase() === 'exit') {
+                    appendMessage('システムを終了します...', 'ai');
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+                    window.close(); // ウィンドウを閉じる
+                    // ウィンドウが閉じない場合のフォールバック
+                    appendMessage('ブラウザの設定によりウィンドウを自動で閉じられません。\nタブを手動で閉じてください。', 'ai');
+                    return;
+                }
+
+                // 通常のメッセージ処理
+                appendMessage(message, 'user');
+                input.value = '';
+
+                try {
+                    // サーバーにメッセージを送信
+                    const selectedPrivacy = document.getElementById('privacy-level').value;
+                    const selectedCategories = Array.from(document.getElementById('category-tags').selectedOptions).map(opt => opt.value);
+
+                    const response = await fetch('', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: `message=${encodeURIComponent(message)}&privacy=${encodeURIComponent(selectedPrivacy)}&tags[]=${selectedCategories.join('&tags[]=')}`
+                    });
+
+                    // AIの応答を表示
+                    const data = await response.json();
+                    appendMessage(data.response, 'ai');
+                } catch (error) {
+                    appendMessage('エラーが発生しました: ' + error.message, 'ai');
+                }
+            });
+
+            // メッセージを追加する関数
+            function appendMessage(text, role) {
+                const div = document.createElement('div');
+                div.className = `message ${role}-message`;
+                div.textContent = text;
+                messages.appendChild(div);
+                messages.scrollTop = messages.scrollHeight;
+            }
+
+            // 最初は入力欄にフォーカス
+            input.focus();
+
+            // 入力欄のフォーカスを維持
+            input.addEventListener('blur', () => {
+                setTimeout(() => input.focus(), 10);
+            });
+
+            // 初期メッセージを表示
+            appendMessage('チャットを開始しました。終了するには "exit" と入力してください。', 'ai');
+        });
+    </script>
+</body>
+</html> 

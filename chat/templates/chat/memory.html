@@ -1,0 +1,58 @@
+<div class="memory-manager">
+    <!-- 検索・フィルタリング部分 -->
+    <div class="memory-search">
+        <input type="text" id="keyword" placeholder="キーワード検索...">
+        <select id="privacy-level">
+            <option value="">すべて</option>
+            <option value="一般">一般</option>
+            <option value="仕事">仕事</option>
+            <option value="プライベート">プライベート</option>
+            <option value="極秘">極秘</option>
+        </select>
+        <input type="date" id="start-date">
+        <input type="date" id="end-date">
+        <button onclick="searchMemories()">検索</button>
+    </div>
+
+    <!-- 記憶一覧表示部分 -->
+    <div class="memory-list">
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all"></th>
+                    <th>日時</th>
+                    <th>プライバシー</th>
+                    <th>会話内容</th>
+                    <th>重要度</th>
+                </tr>
+            </thead>
+            <tbody id="memory-content">
+                {% for memory in memories %}
+                <tr data-id="{{ memory.id }}">
+                    <td><input type="checkbox" class="memory-select"></td>
+                    <td>{{ memory.timestamp }}</td>
+                    <td>{{ memory.privacy_level }}</td>
+                    <td>
+                        <div class="conversation">
+                            <div class="user-message">{{ memory.user_input }}</div>
+                            <div class="ai-message">{{ memory.ai_response }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <select class="importance" onchange="updateImportance({{ memory.id }}, this.value)">
+                            <option value="normal" {% if memory.importance == 'normal' %}selected{% endif %}>通常</option>
+                            <option value="important" {% if memory.importance == 'important' %}selected{% endif %}>重要</option>
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 操作ボタン -->
+    <div class="memory-actions">
+        <button onclick="deleteSelected()" class="danger">選択した記憶を削除</button>
+        <button onclick="exportSelected()">選択した記憶をエクスポート</button>
+    </div>
+</div> 
