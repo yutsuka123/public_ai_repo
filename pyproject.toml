@@ -1,0 +1,12 @@
+[project]
+name = "public-ai-repo"
+version = "0.1.0"
+description = ""
+authors = [
+    { name = "yutsuka123", email = "noreply@example.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = []
+
