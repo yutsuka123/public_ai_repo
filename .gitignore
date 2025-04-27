@@ -3,9 +3,11 @@
 /data/chroma_db/
 *.sqlite
 *.db
+db.sqlite3            # 追跡解除したい個別ファイルがあれば追加
 
 # 環境変数
 .env
+.env*
 
 # Python
 __pycache__/
@@ -46,8 +48,6 @@ env/
 *.log
 
 # セキュリティ関連
-.env*
-!.env.example
 *.key
 *.pem
-secrets/ 
+secrets/
