@@ -1,63 +1,107 @@
-# AI支援型マルチタスク対話システム
+public_ai_repo
 
-## 概要
-このシステムは、複数のAIプロバイダー（OpenAI、Claude、Google AI）を利用した対話システムです。
-CUI、HTML、音声の3つのインターフェースをサポートしています。
 
-## 環境構築
 
-### 必要条件
-- Python 3.8以上
-- pip（Pythonパッケージマネージャー）
+If you find this project useful, please consider giving it a star.
 
-### セットアップ手順
+Overview (EN)
 
-1. リポジトリのクローン
-```bash
-git clone <repository-url>
-cd <repository-name>
-```
+public_ai_repo is a lightweight playground for experimenting with OpenAI / LangChain‑powered multimodal agents on both edge devices and the cloud. The goal is to provide a minimal yet extensible scaffold that lets you prototype conversational or tool‑using agents in minutes and then deploy them to resource‑constrained hardware such as the ESP32.
 
-2. 仮想環境の作成と有効化
-```bash
-python -m venv venv
-# Windows
-.\venv\Scripts\activate
-# Unix/MacOS
-source venv/bin/activate
-```
+Key Features
 
-3. 依存パッケージのインストール
-```bash
-pip install -r requirements.txt
-```
+Agents: conversational, tool‑calling, streaming responses
 
-4. 環境変数の設定
-- `.env.example`ファイルを`.env`にコピー
-```bash
-cp .env.example .env
-```
-- `.env`ファイルを編集し、必要なAPIキーを設定
+Embeddings: adapters for FAISS and Qdrant
 
-5. アプリケーションの起動
-```bash
-python main.py
-```
+Integrations: MQTT, WebSocket, FastAPI, SQLite persistence
 
-初回起動時に必要なディレクトリとDBが自動的に作成されます。
+Developer productivity: Ruff + Black formatters, pytest, GitHub Actions CI
 
-## 使用方法
-起動時に以下のインターフェースから選択できます：
-- CUI: コマンドライン対話モード
-- HTML: Webブラウザベースの対話モード
-- 音声: 音声インターフェース（現在開発中）
+Quick Start
 
-## 注意事項
-- `.env`ファイルは決してGitHubにコミットしないでください
-- APIキーは適切に管理し、公開しないように注意してください
+# Clone the repository
+git clone https://github.com/yutsuka123/public_ai_repo.git
+cd public_ai_repo
 
-## セキュリティ注意事項
+# Install dependencies (Poetry recommended)
+poetry install --with dev
 
-- 本リポジトリをクローンして使用する際は、必ず`.env.example`を参考に`.env`ファイルを作成してください
-- APIキーなどの機密情報は`.env`ファイルに保存し、決してGitHubにコミットしないでください
-- `data/chroma_db/`ディレクトリは自動的に作成されます 
+# Run a simple chat CLI
+poetry run python -m ai_repo.cli
+
+Project Structure
+
+public_ai_repo/
+ ├─ ai_repo/            # Core library
+ │   ├─ agents/         # Agent logic
+ │   ├─ providers/      # Model back‑ends (OpenAI, Ollama, etc.)
+ │   ├─ interfaces/     # CLI, REST, MQTT adapters
+ │   └─ utils/          # Shared helpers
+ ├─ examples/           # Sample notebooks and scripts
+ ├─ tests/              # pytest test‑suite
+ └─ scripts/            # Utility scripts
+
+Roadmap
+
+Replace custom queue with asyncio.TaskGroup
+
+Add a speech‑to‑text endpoint (Whisper or Vosk)
+
+Publish a Docker image for quick trials
+
+Provide an ESP‑IDF component example
+
+public_ai_repo（日本語）
+
+概要（JP）
+
+public_ai_repo は OpenAI / LangChain を活用したマルチモーダル・エージェント を、クラウドとエッジ双方で手軽に試すための軽量プレイグラウンドです。会話型エージェントやツール呼び出しエージェントを数分でプロトタイプし、ESP32 などのリソース制約環境へ展開することを目指しています。
+
+主な特徴
+
+エージェント: 会話型、ツール呼び出し、ストリーミング応答
+
+ベクトル検索: FAISS / Qdrant アダプタ
+
+連携: MQTT、WebSocket、FastAPI、SQLite 永続化
+
+開発体験: Ruff・Black フォーマッタ、pytest、GitHub Actions CI
+
+クイックスタート
+
+# リポジトリをクローン
+git clone https://github.com/yutsuka123/public_ai_repo.git
+cd public_ai_repo
+
+# 依存関係をインストール（Poetry 推奨）
+poetry install --with dev
+
+# チャット CLI を起動
+poetry run python -m ai_repo.cli
+
+ディレクトリ構成
+
+public_ai_repo/
+ ├─ ai_repo/            # コアライブラリ
+ │   ├─ agents/         # エージェントロジック
+ │   ├─ providers/      # モデルバックエンド（OpenAI, Ollama など）
+ │   ├─ interfaces/     # CLI・REST・MQTT アダプタ
+ │   └─ utils/          # 共有ヘルパー
+ ├─ examples/           # サンプルノートブック・スクリプト
+ ├─ tests/              # pytest テストスイート
+ └─ scripts/            # ユーティリティスクリプト
+
+今後の展望
+
+独自キューを asyncio.TaskGroup に置き換え
+
+音声入力（Whisper / Vosk）エンドポイントの追加
+
+動作確認用 Docker イメージの配布
+
+ESP‑IDF コンポーネント例の提供
+
+License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
