@@ -22,6 +22,7 @@ import logging
 import logging.handlers
 import time
 import webbrowser
+import chromadb
 
 # 環境変数の読み込み
 load_dotenv()

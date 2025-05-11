@@ -16,7 +16,7 @@ Embeddings: adapters for FAISS and Qdrant
 
 Integrations: MQTT, WebSocket, FastAPI, SQLite persistence
 
-Developer productivity: Ruff + Black formatters, pytest, GitHub Actions CI
+Developer productivity: Ruff + Black formatters, pytest, GitHub Actions CI
 
 Quick Start
 
@@ -101,6 +101,18 @@ public_ai_repo/
 動作確認用 Docker イメージの配布
 
 ESP‑IDF コンポーネント例の提供
+
+## Considerations for Future Implementation / 今後の検討事項
+
+| Purpose / 目的 | Recommended Tools / 推奨ツール／ライブラリ | Notes / 補足 |
+|---|---|---|
+| RAG-style AI Generation / RAG 型生成 AI | Vector DB: pgvector (PostgreSQL 16) or Pinecone<br>Embeddings: OpenAI API / Sentence-Transformers | Integratable directly from Django + LangChain<br>Django + LangChain から直接呼び出せる |
+| API Layer Separation / API レイヤ分離 | FastAPI (see §3) | Divide roles: Django for frontend & admin, FastAPI for lightweight API for easier maintenance<br>Django ＝フロント & 管理、FastAPI ＝軽量 API と役割分担すると保守が楽 |
+| Asynchronous Tasks / 非同期タスク | Celery + Redis / RabbitMQ | Execute chat responses and embedding generation in background<br>チャット応答や埋め込み生成をバックグラウンド実行 |
+| Messaging / メッセージング | Apache Kafka / Amazon SQS | Scales well with increasing users<br>ユーザ数が増えてもスケールしやすい |
+| Environment Management / 環境管理 | Poetry (dependency resolution)<br>Docker Compose (development) | Deployable to ECS Fargate / Kubernetes in production<br>本番は ECS Fargate / Kubernetes へそのまま載せ換え可 |
+| Testing / テスト | PyTest + Coverage<br>Playwright (E2E) | Automatic testing of generative AI using "golden answer" approach<br>生成 AI 部は「ゴールデン回答」方式で自動テスト |
+| Monitoring & Logging / 監視 & ログ | OpenTelemetry + Prometheus + Grafana | Visualize OpenAI usage and latency<br>OpenAI の usage/latency を可視化 |
 
 License
 

@@ -1,17 +1,15 @@
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
+from langchain_community.document_loaders import DirectoryLoader
 from datetime import datetime
-import json
-from pathlib import Path
 from dotenv import load_dotenv
 import os
 from core.privacy_analyzer import PrivacyAnalyzer
 from typing import List
-from chromadb.config import Settings
 import logging
 import traceback
+import chromadb
 
 load_dotenv()  # .envファイルから環境変数を読み込む
 
@@ -25,11 +23,13 @@ class ConversationDBManager:
             self._verify_environment()
             
             # DBディレクトリの初期化
-            self.persist_directory = Path(
-                persist_directory or 
+            self.persist_directory = (
+                persist_directory or
                 os.getenv('CHROMA_DB_DIR', './data/chroma_db')
             )
             self._initialize_directory()
+            self.privacy_analyzer = PrivacyAnalyzer()
+            self.text_splitter = CharacterTextSplitter()
             
             # 初期設定の実行
             self._setup_initial_config()
@@ -52,12 +52,15 @@ class ConversationDBManager:
     def _initialize_directory(self):
         """DBディレクトリの初期化"""
         try:
-            self.persist_directory.mkdir(parents=True, exist_ok=True)
+            os.makedirs(self.persist_directory, exist_ok=True)
             logger.info(f"DBディレクトリを初期化: {self.persist_directory}")
             
             # 必要なサブディレクトリの作成
             for subdir in ['collections', 'indexes']:
-                (self.persist_directory / subdir).mkdir(exist_ok=True)
+                os.makedirs(
+                    os.path.join(self.persist_directory, subdir),
+                    exist_ok=True
+                )
                 
         except Exception as e:
             logger.error(f"ディレクトリ初期化エラー: {e}")
@@ -66,19 +69,15 @@ class ConversationDBManager:
     def _setup_initial_config(self):
         """初期設定の実行"""
         try:
-            # ChromaDBの設定
             collection_name = os.getenv('CHROMA_COLLECTION_NAME', 'conversations')
-            
-            # コレクションが存在しない場合は作成
-            if not self.db or collection_name not in self.db.list_collections():
-                logger.info(f"新規コレクションを作成: {collection_name}")
-                self.db.create_collection(
-                    name=collection_name,
-                    metadata={"created_at": datetime.now().isoformat()}
-                )
-                
-            logger.info("DB初期設定が完了しました")
-            
+            # 新しい PersistentClient API を利用して永続化ディレクトリを指定
+            client = chromadb.PersistentClient(path=self.persist_directory)
+            self.db = Chroma(
+                client=client,
+                collection_name=collection_name,
+                embedding_function=OpenAIEmbeddings()
+            )
+            logger.info(f"ChromaDBコレクションを初期化: {collection_name}")
         except Exception as e:
             logger.error(f"初期設定エラー: {e}")
             raise
@@ -119,8 +118,7 @@ class ConversationDBManager:
                         "response_length": len(response)
                     }]
                 )
-                # 永続化を明示的に実行
-                self.db.persist()
+                # 永続化は自動で行われるため、manual persist() 呼び出しを削除しました
                 logger.info("会話の保存に成功しました")
                 return True
                 
@@ -180,7 +178,7 @@ class ConversationDBManager:
         metadatas = [{"type": "knowledge", "source": doc.metadata["source"]} for doc in texts]
         
         self.db.add_documents(texts, metadatas=metadatas)
-        self.db.persist()
+        # 永続化は自動で行われるため、manual persist() 呼び出しを削除しました
 
     def search_conversations(self, query: str, privacy_level: str = None, 
                            tags: List[str] = None, limit: int = 5):
