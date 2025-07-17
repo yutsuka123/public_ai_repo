@@ -562,6 +562,10 @@ def main():
     finally:
         sys.exit(0)
 
+def print_hello_world():
+    """Prints 'Hello World' to the console."""
+    print("Hello World")
+
 if __name__ == "__main__":
     try:
         logger.info("メモリシステムの初期化を開始")
@@ -577,6 +581,7 @@ if __name__ == "__main__":
         else:
             logger.warning("記憶システムに問題が見つかりました")
             
+        print_hello_world()  # Call the new function
         main()
     except Exception as e:
         logger.error(f"起動時エラー: {e}")

@@ -1,0 +1,174 @@
+# AI対話システム 開発TODO
+# AI対話システム 開発TODO
+
+## 最優先度: 緊急
+- [ ] 会話履歴の高度な参照システムの実装
+  - 直近20件の会話をアクティブメモリとして保持
+    - ChromaDBのコレクション分割（active_memory, long_term_memory）
+    - アクティブメモリの自動更新メカニズム
+  - 長期記憶からの関連会話検索機能
+    - セマンティック検索の実装
+    - キーワードベースの検索機能強化
+    - 類似度スコアの調整
+  - 実装手順:
+    1. ChromaDBのコレクション設計
+    2. メモリマネージャーの作成
+    3. 検索アルゴリズムの実装
+    4. 会話コンテキスト管理の実装
+
+- [ ] ファイルシステム操作機能の実装
+  - ファイル読み取り機能
+    - テキストファイル、PDF、画像等の対応
+    - ファイルパスのバリデーション
+    - セキュリティチェック
+  - ファイル書き込み機能
+    - ユーザー確認ダイアログの実装
+    - 書き込み権限の確認
+    - バックアップ機能
+  - ナレッジベース管理
+    - 長文データの効率的な保存
+    - メタデータ管理システム
+  - 実装手順:
+    1. ファイル操作ユーティリティの作成
+    2. セキュリティチェック機能の実装
+    3. ユーザー確認システムの実装
+    4. ナレッジベース管理システムの実装
+
+## 優先度: 高
+- [ ] Web検索・分析機能の実装
+  - Web検索機能
+    - 検索API（Google Custom Search等）の統合
+    - 検索結果のキャッシュ機能
+  - Webコンテンツ解析
+    - HTMLパース機能
+    - テキスト抽出・要約機能
+    - 関連情報の抽出
+  - 実装手順:
+    1. 検索APIクライアントの実装
+    2. コンテンツ解析エンジンの作成
+    3. キャッシュシステムの実装
+    4. 結果フォーマッターの作成
+
+[既存のTODO項目は維持]
+
+## 技術的な実装詳細
+
+### 会話履歴システム
+```python
+class MemoryManager:
+    def __init__(self):
+        self.active_memory = ChromaDB("active_memory")
+        self.long_term_memory = ChromaDB("long_term_memory")
+        self.max_active_memories = 20
+
+    def add_conversation(self, conversation):
+        # アクティブメモリに追加
+        self.active_memory.add(conversation)
+        # 長期記憶にも保存
+        self.long_term_memory.add(conversation)
+        # アクティブメモリのサイズ管理
+        self._manage_active_memory_size()
+
+    def search_related_conversations(self, query):
+        # アクティブメモリから検索
+        active_results = self.active_memory.similarity_search(query)
+        # 長期記憶から検索
+        long_term_results = self.long_term_memory.similarity_search(query)
+        # 結果の統合とランク付け
+        return self._merge_and_rank_results(active_results, long_term_results)
+```
+
+### ファイル操作システム
+```python
+class FileOperationManager:
+    def __init__(self):
+        self.allowed_extensions = ['.txt', '.pdf', '.jpg', '.png']
+        self.max_file_size = 10 * 1024 * 1024  # 10MB
+
+    async def read_file(self, file_path):
+        if not self._validate_file(file_path):
+            raise SecurityError("Invalid file access attempt")
+        return await self._read_file_content(file_path)
+
+    async def write_file(self, file_path, content):
+        if not await self._get_user_confirmation():
+            return False
+        return await self._write_file_content(file_path, content)
+
+    async def _get_user_confirmation(self):
+        # ユーザー確認ダイアログの表示
+        return await self.dialog.confirm("ファイルを書き込みますか？")
+```
+
+### Web検索システム
+```python
+class WebSearchManager:
+    def __init__(self):
+        self.search_client = GoogleCustomSearch()
+        self.cache = SearchCache()
+
+    async def search(self, query):
+        # キャッシュチェック
+        if cached_result := self.cache.get(query):
+            return cached_result
+        
+        # 新規検索実行
+        results = await self.search_client.search(query)
+        # 結果の解析と要約
+        analyzed_results = await self.analyze_results(results)
+        # キャッシュに保存
+        self.cache.store(query, analyzed_results)
+        
+        return analyzed_results
+```
+
+これらの実装は、モジュール化された設計で、テスト可能で拡張性の高いものを目指します。各機能は非同期処理を基本とし、エラーハンドリングとログ記録を適切に行います。
+## 優先度: 高
+- [ ] .env.exampleファイルの作成
+  - OPENAI_API_KEY設定
+  - MODEL_NAME設定
+  - CHROMA_DB_DIR設定
+  - CHROMA_COLLECTION_NAME設定
+
+- [ ] requirements.txtの作成
+  - langchain関連パッケージ
+  - chromadb
+  - django
+  - python-dotenv
+  - その他依存パッケージ
+
+- [ ] README.mdの更新
+  - プロジェクト概要
+  - セットアップ手順
+  - 環境構築手順
+  - 使用方法
+
+## 優先度: 中
+- [ ] privacy_analyzer.pyの実装
+  - プライバシーレベル分析ロジックの作成
+  - テストケースの作成
+
+- [ ] ChromaDBの初期化処理の修正
+  - self.dbの初期化が未実装
+  - コレクション作成ロジックの確認
+
+- [ ] エラーハンドリングの強化
+  - ログ出力の整理
+  - エラーメッセージの多言語対応
+
+## 優先度: 低
+- [ ] コードスタイルの修正
+  - リンターエラーの解消
+  - コメントの整理
+  - 行長制限の対応
+
+- [ ] テスト環境の整備
+  - ユニットテストの作成
+  - 統合テストの作成
+  - テストカバレッジの設定
+
+## 将来的な拡張
+- [ ] 会話履歴のエクスポート機能
+- [ ] プライバシーレベルの自動判定の精度向上
+- [ ] マルチユーザー対応
+- [ ] API認証の強化 
