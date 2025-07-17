@@ -2,14 +2,20 @@ name: Run Shared Workflow
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+  issues:
+    types: [opened]
+  workflow_dispatch:  # Slackから起動用
 
 jobs:
-  use-shared:
+  run-shared:
     uses: yutsuka123/workflow-library/.github/workflows/shared.yml@main
+    with:
+      context_type: ${{ github.event_name }}
+      message: "イベント発生: ${{ github.event_name }}"
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
